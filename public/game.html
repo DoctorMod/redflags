@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Red Flags | Web Version</title>
+        <link rel="stylesheet" href="style.css" />
+        <link rel="icon" type="image/png" href="favicon.png">
+    </head>
+    <body>
+        <div class="container">
+            <div class="title">
+                <h1>Red Flags</h1>
+                <h6>The Game of Terrible Dates</h6>
+            </div>
+            <div class="context">
+                <div class="cardGrid">
+                    <div id="lobbyGrid" class="gameDisplay active">
+                        <h1><span id="username">[Name]</span></h1>
+                        <h3>You're in! Is your name on the screen?</h3>
+                    </div>
+                    <div id="perkGrid" class="displayGrid showSubmit gameDisplay">
+                        <button onclick="cardClicked(event,perkRemaining)"><div class="card perkCard" id="perk1">Is allergic to all of your favorite foods</div></button>
+                        <button onclick="cardClicked(event,perkRemaining)"><div class="card perkCard" id="perk2">Amateur vigilante</div></button>
+                        <button onclick="cardClicked(event,perkRemaining)"><div class="card perkCard" id="perk3">Wears diapers because it's "more convenient"</div></button>
+                        <button onclick="cardClicked(event,perkRemaining)"><div class="card perkCard" id="perk4">Has an 8-pack</div></button>
+                    </div>
+                    <div id="flagGrid" class="displayGrid showSubmit gameDisplay">
+                        <button onclick="cardClicked(event,flagRemaining)"><div class="card flagCard" id="flag1">Is allergic to all of your favorite foods</div></button>
+                        <button onclick="cardClicked(event,flagRemaining)"><div class="card flagCard" id="flag2">Amateur vigilante</div></button>
+                        <button onclick="cardClicked(event,flagRemaining)"><div class="card flagCard" id="flag3">Wears diapers because it's "more convenient"</div></button>
+                    </div>
+                    <div id="dateGrid" class="displayGrid showSubmit gameDisplay">
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date1">Adam</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date2">Brian</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date3">Caleb</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date4">David</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date5">Emily</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date6">Frank</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date7">George</div></button>
+                        <button onclick="cardClicked(event,dateRemaining)"><div class="card dateCard" id="date8">Henry</div></button>
+                    </div>
+                    <div id="tipGrid" class="gameDisplay">
+                        <h3>Now we wait!</h3>
+                        <img class="middle" src="img/waiting.gif">
+                    </div>
+                    <div id="blankGrid" class="gameDisplay"></div>
+                    <div id="endGrid" class="gameDisplay">
+                        <h1><span id="winnerUser">[Name]</span> wins!</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="footer">
+                <button class="displayButton" id="gameSubmit" onclick="submit()" disabled>Submit</button>
+            </div>
+        </div>
+        <div id="flagModal" class="modal">
+            <div class="modal-content">
+                <h3><span id="assignedName">[Name]</span>'s Perk Cards are:</h3>
+                <br/>
+                <br/>
+                <br/>
+                <div class="cardGrid">
+                    <div class="displayGrid">
+                        <button><div id="assignedCard1" class="card perkCard">Has an 8-pack</div></button>
+                        <button><div id="assignedCard2" class="card perkCard">Amateur vigilante</div></button>
+                    </div>
+                </div>
+                <button class="footerButton displayButton" onclick="document.getElementById('flagModal').style.display = 'none'">Close</button>
+            </div>
+        </div>
+        <div class="area">
+            <ul class="circles">
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+            </ul>
+        </div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="game.js"></script>
+    </body>
+</html>

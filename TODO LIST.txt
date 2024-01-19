@@ -1,0 +1,92 @@
+Client-Side Stuff:
+
+Add 6 Different 'displays'
+[X] - all.lobby
+[X] - player.perks (Submit)
+[X] - all.blank 
+[X] - player.flags (Submit)
+[ ] - single.date (Submit)
+[X] - all.end
+
+lobby code: `Math.random().toString(36).substring(2,6).toUpperCase()`
+
+[ ] - set singleSessionID
+
+Messages:
+
+        ClientPlayer                    Server
+[X/X] - requestId, args[name] --------> [return id, init playerObj, assign playerObj.name]
+[X/X] - [display perks] <-------------- startPerks, args[CHECK JSON IN GAME.JS]
+[X/X] - SubmitPerks, args[id,cards] --> [assign playerObj.selectedPerkCards]
+[X/X] - [display blank] <-------------- blank, args[]
+[X/X] - [display flags] <-------------- startFlags, args[CHECK JSON IN GAME.JS]
+[X/X] - SubmitFlags, args[id,cards] --> [assign playerObj.selectedFlagCards]
+[ /X] - [display date] <--------------- startDate, args[CHECK JSON IN GAME.JS]
+[X/X] - SubmitDate, args[winnerid] ---> [assign Winner]
+[X/ ] - [display end] <---------------- gameOver, args[winner]
+[ / ] - nextSlide, args[] ------------> [display nextSlide]
+
+# EVENTUALLY DO THIS STUFF
+        ClientDisplay                   Server
+[X/X] - [display lobby] <-------------- initialize, args[roomCode, secretCode]
+[X/X] - [add playerName] <------------- playerJoin, args[username]
+[X/X] - settings, args[settings] -----> [assign settings]
+[X/X] - startGame, args[] ------------> [emit startPerks]
+[X/X] - [display timer] <-------------- showTimer, args[timer]
+[ / ] - [run animation] <-------------- playerSubmitted, args[playerName]
+[X/X] - [display perks] <-------------- displayPerks, args[foreach playerObj -> playerObj.perks]
+[X/ ] - [display nextSlide] <---------- nextSlide, args[]
+[X/X] - doneSlides, args[state] ------> [emit start{state}]
+[X/X] - [display flags] <-------------- displayFlags, args[foreach playerObj -> playerObj.perks, foreach playerObj -> playerObj.flags]
+[ / ] - [display end] <---------------- gameOver, args[winner]
+
+startDate Expected input object: 
+{
+    "timer":int,
+    "playersObj": {
+        sessionID: {
+            "selectedPerkCards": [
+                "card1",
+                "card2"
+            ]
+            "selectedFlagCards": [
+                "card1"
+            ]
+        }
+    }
+}
+
+startFlags Expected input object: 
+{
+    "timer":int,
+    "assignedID": {
+        sessionID: otherSessionID
+    },
+    "playersObj":
+        otherSessionID: {
+            "selectedPerkCards": [
+                "card1",
+                "card2"
+            ]
+        },
+    "flagCards": {
+        sessionID: [
+            "card1",
+            "card2",
+            "card3"
+        ]
+    }
+}
+
+startPerks Expected input object: 
+{
+    "timer":int,
+    "single": otherSessionID,
+    "perkCards": {
+        sessionID: [
+            "card1",
+            "card2",
+            "card3"
+        ]
+    }
+}
