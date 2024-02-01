@@ -6,7 +6,7 @@ var dateRemaining;
 
 var gameState;
 var timer;
-var single;
+var singleID;
 var assignedID;
 
 var sessionID;
@@ -57,10 +57,17 @@ function changeGameState(state) {
 			setActiveDisplay("dateGrid");
 			break;
 		case 'lone':
-			setActiveDisplay("dateGrid");
+			setActiveDisplay("tipGrid");
 			break;	
 		case 'blnk':
 			setActiveDisplay("blankGrid");
+			break;
+		case 'nblk':
+			if (singleID != sessionID) {
+				setActiveDisplay("blankGrid");
+			} else {
+				setActiveDisplay("BnextGrid");
+			}
 			break;
 		case 'winr':
 			setActiveDisplay("endGrid");
@@ -161,8 +168,9 @@ function getSessionID() {
 
 //Submit cards
 function submit() {
+	console.log(cardObj);
 	socket.emit("submit" + capitalizeFirstLetter(gameState), {"id": sessionID, "cards": cardObj[gameState], "fillInBlank": cardObj.fillInBlank[gameState] });
-	changeGameState("wait")
+	changeGameState("wait");
 }
 
 // ## Recieve
@@ -181,25 +189,48 @@ socket.on("startPerks", (message) => {
 });
 
 socket.on("startFlags", (message) => {
-	timer = message.timer;
-	assignedID = message.assignedID[sessionID];
-	for (let i = 0; i < 3; i++) {
-		document.getElementById("flag" + (i + 1)).innerText = message.flagCards[sessionID][i];
+	if (singleID != sessionID) {
+		timer = message.timer;
+		assignedID = message.assignedID[sessionID];
+		for (let i = 0; i < 3; i++) {
+			document.getElementById("flag" + (i + 1)).innerText = message.flagCards[sessionID][i];
+		}
+		document.getElementById("assignedName").innerText = message.playersObj[assignedID].displayName;
+		document.getElementById("assignedCard1").innerText = message.playersObj[assignedID].selectedPerkCards[0];
+		document.getElementById("assignedCard2").innerText = message.playersObj[assignedID].selectedPerkCards[1];
+		changeGameState("flag");
+	} else {
+		changeGameState("lone");
 	}
-	document.getElementById("assignedName").innerText = message.playersObj[assignedID].displayName;
-	document.getElementById("assignedCard1").innerText = message.playersObj[assignedID].selectedPerkCards[0];
-	document.getElementById("assignedCard2").innerText = message.playersObj[assignedID].selectedPerkCards[1];
-	changeGameState("flag");
+});
+
+socket.on("startDate", (message) => {
+	timer = message.timer;
+	playersObj = message.playersObj;
+	if (singleID != sessionID) {
+		changeGameState("lone");
+	} else {
+		for (let i = 0; i < Object.keys(playersObj).length; i++) {
+			console.log(i);
+			document.getElementById("date" + (i + 1)).style.display = 'block';
+			document.getElementById("date" + (i + 1)).innerText = message.playersObj[Object.keys(playersObj)[i]].displayName;
+		}
+		for (let i = Object.keys(playersObj).length; i < 8; i++) {
+			console.log(i);
+			document.getElementById("date" + (i + 1)).style.display = 'none';
+		}
+		changeGameState("date");
+	}
 });
 
 //onBlank
-socket.on("blank", (message) => {
-	changeGameState("blnk");
+socket.on("blankNext", (message) => {
+	changeGameState("nblk");
 });
 
 //onWinner
 socket.on("gameOver", (message) => {
-	document.getElementById("username").innerText = message;
+	document.getElementById("winnerUser").innerText = message;
 	changeGameState("winr");
 });
 

@@ -266,7 +266,8 @@ button:has(> .card) {
 .playersGrid {
     grid-template-columns: repeat(4, 1fr);
     position: relative;
-    bottom: -20vh;
+    bottom: 0;
+    font-size: 1vw;
 }
 
 .centred {
@@ -298,9 +299,9 @@ button:has(> .card) {
     padding: 1em;
 }
 
-.startGame {
-    margin: 23vh auto 0 auto;
-}
+/* .startGame {
+    margin:  auto 0 auto;
+} */
 
 .context .display:not(.active) {
     display: none;

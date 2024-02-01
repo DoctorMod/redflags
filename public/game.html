@@ -45,6 +45,9 @@
                         <img class="middle" src="img/waiting.gif">
                     </div>
                     <div id="blankGrid" class="gameDisplay"></div>
+                    <div id="BnextGrid" class="gameDisplay">
+                        <button class="menuButton" onclick="socket.emit('nextSlide')">Next Slide</button>
+                    </div>
                     <div id="endGrid" class="gameDisplay">
                         <h1><span id="winnerUser">[Name]</span> wins!</h1>
                     </div>

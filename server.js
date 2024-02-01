@@ -18,7 +18,8 @@ var settings = {
 	"reuseCards": false,
 	"perkTimer": 30,
 	"flagTimer": 30,
-	"dateTimer": 60
+	"dateTimer": 60,
+	"endTimer": 20
 }
 
 var timeout;
@@ -51,6 +52,15 @@ function createEmptyPlayer() {
         selectedPerkCards: [],
         selectedFlagCards: []
     };
+}
+
+function resetGameState() {
+	return {
+		assignedIDs: {},
+		perksDone: 0,
+		flagsDone: 0,
+		singleID: ''
+	}
 }
 
 //Gamestate
@@ -178,13 +188,7 @@ io.on("connection", (socket) => {
 		if (settings.DEBUGFLAG || secretCode == gameState.displaySecret) {
 			var possiblePerkCards = {};
 			gameState.singleID = Object.keys(playersObject)[gameState.singleIndex];
-			for (let i = 0; i < Object.keys(playersObject).length; i++) {
-				const playerID = Object.keys(playersObject)[i];
-				if (playerID != gameState.singleID) {
-					playersObject[playerID].possiblePerkCards = generateDeck(perksArray, 4);
-					possiblePerkCards[playerID] = playersObject[playerID].possiblePerkCards;	
-				}
-			}
+			assignDecks();
 			const message = {
 				"timer": settings.perkTimer,
 				"singleID": gameState.singleID,
@@ -195,6 +199,10 @@ io.on("connection", (socket) => {
 			io.emit("showTimer",settings.perkTimer);
 		}
 	});
+
+	socket.on("nextSlide", function() {
+		io.emit("nextSlide");
+	})
 
 	//on doneSlides from ClientDisplay, send out the corresponding GameState
 	socket.on("doneSlides", function (messageObj) {
@@ -264,8 +272,10 @@ io.on("connection", (socket) => {
 	});
 
 	//on submitDate, end the game.
-	socket.on("submitDate", function (winnerID) {
-		io.emit("gameOver", playersObject[winnerID].displayName)
+	socket.on("submitDate", function (message) {
+		const winnerID = Object.keys(playersObject)[message.cards[0]];
+		io.emit("gameOver", {"winner":playersObject[winnerID].displayName,"timer":settings.endTimer});
+		timeout = setTimeout(function(){ timeUp("game") },settings.endTimer*1000);
 	});
 
 	function timeUp(state) {
@@ -296,10 +306,32 @@ io.on("connection", (socket) => {
 			case 'date':
 				checkAdvance('date',10000);
 				break;
+			case 'game':
+				gameRestart();
+				break;
 			default:
 				console.error(`[REDFLAGS] Weird advance state of '${state}', idk what's happening.`)
 				break;
 		}
+	}
+
+	function assignDecks() {
+		for (let i = 0; i < Object.keys(playersObject).length; i++) {
+			const playerID = Object.keys(playersObject)[i];
+			if (playerID != gameState.singleID) {
+				playersObject[playerID].possiblePerkCards = generateDeck(perksArray, 4);
+				possiblePerkCards[playerID] = playersObject[playerID].possiblePerkCards;	
+			}
+		}
+	}
+
+	function gameRestart() {
+		gameState = resetGameState();
+		for (let i = 0; i < Object.keys(playersObject).length; i++) {
+			const playerID = Object.keys(playersObject)[i];
+			playersObject[playerID] = createEmptyPlayer();
+		}
+		io.emit("restart")
 	}
 
 	function checkAdvance(state, valueCheck) {
@@ -307,14 +339,14 @@ io.on("connection", (socket) => {
 			case 'perk':
 				if (valueCheck >= gameState.playersMax) {
 					clearTimeout(timeout);
-					io.emit("blank");
+					io.emit("blankNext");
 					io.emit("displayPerks", {"playersObject": playersObject, "singleID": gameState.singleID});
 				}
 				break;
 			case 'flag':
 				if (valueCheck >= gameState.playersMax) {
 					clearTimeout(timeout);
-					io.emit("blank");
+					io.emit("blankNext");
 					io.emit("displayFlags", {"playersObject":playersObject, "singleID": gameState.singleID, "assignedIDs":gameState.assignedIDs});
 				}
 				break;

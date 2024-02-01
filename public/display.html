@@ -41,9 +41,6 @@
                 <button class="startGame displayButton" id="startGame" onclick="socket.emit('startGame',secret); "
                     disabled>Submit</button>
             </div>
-            <div class="timer display">
-                <h1><span id="seconds"></span> seconds remain!</h1>
-            </div>
             <div class="perks display">
                 <h2><span id="perkName">[Name]</span>'s Perk Cards are:</h2>
                 <br />
@@ -69,7 +66,13 @@
                     </div>
                 </div>
             </div>
-            <div class="end display"></div>
+            <div class="end display">
+                <h2><span id="winnerName">[Name]</span> won!</h2>
+                <br/><br/><br/>
+            </div>
+            <div class="timer display">
+                <h1><span id="seconds"></span> seconds remain!</h1>
+            </div>
         </div>
 
 

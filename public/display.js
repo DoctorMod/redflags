@@ -204,6 +204,15 @@ socket.on("displayFlags", (message) => {
 	updateFlag(flagList[0]);
 });
 
+//Show Winner
+socket.on("gameOver", (message) => {
+	changeDisplay("end");
+	document.getElementsByClassName("timer")[0].classList.add("active");
+	document.getElementById("winnerName").innerText = message.winner;
+	timeRemainingSeconds = message.timer;
+	document.getElementById("seconds").innerText = timeRemainingSeconds;
+});
+
 //Goto Next Slide
 socket.on("nextSlide", nextSlide);
 
