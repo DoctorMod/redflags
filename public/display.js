@@ -139,19 +139,35 @@ function nextSlide() {
 
 //Start up request id and room code
 socket.emit("requestDisplay", secret, (response) => {
-	document.getElementById("ip").innerText = response.ip;
-	document.getElementById("roomCode").innerText = response.roomCode;
-	console.log(response);
-	lobbyTTS = setTimeout(function(){ tts(ttsOneLiner("lobbyLines")) },23*1000);
+	if (!response.instantLoad) {
+		document.getElementById("ip").innerText = response.ip;
+		document.getElementById("roomCode").innerText = response.roomCode;
+		lobbyTTS = setTimeout(function(){ tts(ttsOneLiner("lobbyLines")) },23*1000);
+		for (const user in response.currentPlayerObj) {
+			if (Object.hasOwnProperty.call(response.currentPlayerObj, user)) {
+				const element = response.currentPlayerObj[user];
+				playerJoin(element.displayName);
+			}
+		}
+	} else {
+		setTimeout(function(){socket.emit('startGame',secret)},500);
+	}
 });
 
-//on player join, add name to list
-socket.on("playerJoin", (playerName) => {
+function playerJoin(playerName) {
 	document.getElementsByClassName("card")[playerCounter].innerText = playerName;
 	playerCounter += 1;
 	if (playerCounter >= 3) {
+		console.log("disabled");
 		document.getElementById("startGame").disabled = false;
+	} else {
+		document.getElementById("startGame").disabled = true;	
 	}
+}
+
+//on player join, add name to list
+socket.on("playerJoin", (playerName) => {
+	playerJoin(playerName);
 	tts(ttsOneLiner("playerJoin").replace("[NAME]",playerName))
 })
 
@@ -164,7 +180,6 @@ setInterval(function() {
 //switch to the timer
 socket.on("showTimer", (timer) => {
 	changeDisplay("timer");
-	console.log(timer);
 	timeRemainingSeconds = timer;
 	document.getElementById("seconds").innerText = timeRemainingSeconds;
 });
@@ -173,12 +188,10 @@ socket.on("showTimer", (timer) => {
 socket.on("displayPerks", (message) => {
 	playersObject = message.playersObject;
 	singleID = message.singleID;
-	console.log(playersObject);
 	changeDisplay("perks");
 	for (let i = 0; i < Object.keys(playersObject).length; i++) {
 		const playerID = Object.keys(playersObject)[i];
 		if (singleID != playerID) {
-			console.log(playerID + ":" + playersObject[playerID].selectedPerkCards);
 			perksList[i] = {};
 			perksList[i].displayName = playersObject[playerID].displayName;
 			perksList[i].perksList = playersObject[playerID].selectedPerkCards;	
@@ -192,13 +205,11 @@ socket.on("displayFlags", (message) => {
 	playersObject = message.playersObject;
 	singleID = message.singleID;
 	swappedAssignedIDs = Object.fromEntries(Object.entries(message.assignedIDs).map(a => a.reverse()));
-	console.log(playersObject);
 	changeDisplay("flags");
 	for (let i = 0; i < Object.keys(playersObject).length; i++) {
 		const playerID = Object.keys(playersObject)[i];
 		if (singleID != playerID) {
 			const assigneeID = swappedAssignedIDs[playerID];
-			console.log(playerID + ":" + playersObject[playerID].selectedFlagCards);
 			flagList[i] = {};
 			flagList[i].assigneePlayerName = playersObject[assigneeID].displayName;
 			flagList[i].originalPlayerName = playersObject[playerID].displayName;
@@ -221,7 +232,6 @@ socket.on("gameOver", (message) => {
 //Show Final Winner
 socket.on("gameOverFinal", (WinnerName) => {
 	changeDisplay("endFinal");
-	console.log(WinnerName);
 	document.getElementById("gameWinner").innerText = WinnerName;
 	timeRemainingSeconds = WinnerName.timer;
 	document.getElementById("seconds").innerText = timeRemainingSeconds;

@@ -12,7 +12,7 @@ const PORT = 3008 || process.env.PORT;
 const server = http.createServer(app);
 
 var settings = {
-	"DEBUGFLAG": true,
+	"DEBUGFLAG": false,
 	"tts": false,
 	"reuseCards": false,
 	"perkTimer": 30,
@@ -62,6 +62,8 @@ function resetGameState() {
 }
 
 function resetGameStateToBegining() {
+	gameState.displaySecret = '',
+	gameState.state = 'lobby';
 	gameState.assignedIDs = {};
 	playersObject = {};
 	gameState.points = {};
@@ -79,6 +81,7 @@ function resetGameStateToBegining() {
 var gameState = {
 	displaySecret: '',
 	roomCode: '',
+	state: 'lobby',
 	assignedIDs: {},
 	points: {},
 	winner: {},
@@ -86,6 +89,7 @@ var gameState = {
 	flagsDone: 0,
 	singleIndex: 0,
 	playersMax: -1,
+	replay: false,
 	singleID: ''
 }
 
@@ -112,7 +116,7 @@ fs.readFile('listofFlags.txt', 'utf8', (err, data) => {
 });
 
 //Start Server
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`[REDFLAGS] running on port ${PORT}`));
 
 //Generate Deck Function
 function generateDeck(arr, len) {
@@ -170,6 +174,14 @@ io.on("connection", (socket) => {
 		eval(code);
 	});
 
+	function setupPlayer(displayName) {
+		playersObject[socket.id] = createEmptyPlayer();
+		playersObject[socket.id].displayName = displayName;
+		console.log(`[REDFLAGS] Client '${socket.id}' has joined with the name '${displayName}'.`);
+		gameState.playersMax += 1;
+		io.emit("playerJoin", displayName);
+	}
+
 	//on RequestID from Client, return an ID and add them to the playerObject
 	socket.on("requestID", (searchObj, callback) => {
 		const displayName = searchObj.playerName;
@@ -178,19 +190,30 @@ io.on("connection", (socket) => {
 			callback({ "error": true });
 			return false;
 		}
-		playersObject[socket.id] = createEmptyPlayer();
-		playersObject[socket.id].displayName = displayName;
-		console.log(playersObject);
-		gameState.playersMax += 1;
+		setupPlayer(displayName);
 		callback(socket.id);
-		io.emit("playerJoin", displayName);
 	});
+
+	//return username for players who already have a user in the game
+	socket.on("getUsername", (searchObj, callback) => {
+		const playerID = searchObj.playerID;
+		const displayName = searchObj.playerName;
+		//does this user exist?
+		if (playersObject[playerID] == undefined) {
+			//Doesn't exist
+			setupPlayer(displayName);
+			callback({"isUserReal": false,"sessionID": socket.id});
+		} else {
+			//Does exist
+			callback({"isUserReal": true,"playerName": playersObject[playerID].displayName});
+		}
+	})
 
 	//on requestDisplay from ClientDisplay, return roomCode
 	socket.on("requestDisplay", (displaySecret, callback) => {
 		gameState.displaySecret = displaySecret;
 		gameState.roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-		callback({ 'roomCode': gameState.roomCode, 'ip': ip.address() + ":" + PORT });
+		callback({ 'roomCode': gameState.roomCode, 'ip': ip.address() + ":" + PORT, 'instantLoad': gameState.replay, 'currentPlayerObj': playersObject});
 	});
 
 	//on settingsUpdate
@@ -211,6 +234,7 @@ io.on("connection", (socket) => {
 			}
 			const currentRound = gameState.singleIndex;
 			perkTimeout = setTimeout(function(){ timeUp("perk",currentRound) },settings.perkTimer*1000);
+			gameState.state = 'perk';
 			io.emit("startPerks", message);
 			io.emit("showTimer",settings.perkTimer);
 		}
@@ -224,6 +248,7 @@ io.on("connection", (socket) => {
 	//Play Again
 	socket.on("playAgain", function () {
 		io.emit("playAgain");
+		gameState.replay = true;
 		resetGameStateToBegining();
 	});
 
@@ -239,7 +264,7 @@ io.on("connection", (socket) => {
 			case 'flag':
 				var possibleFlagCards = {};
 				var shuffledArray = shuffleArray(Object.keys(playersObject));
-				if (settings.DEBUGFLAG || messageObj.secretCode == gameState.displaySecret) {
+				if (settings.DEBUGFLAG || messageObj.secret == gameState.displaySecret) {
 					for (let i = 0; i < Object.keys(playersObject).length; i++) {
 						const playerID = Object.keys(playersObject)[i];
 						if (playerID != gameState.singleID) {
@@ -258,6 +283,7 @@ io.on("connection", (socket) => {
 						"flagCards": possibleFlagCards,
 						"playersObj": playersObject
 					}
+					gameState.state = 'perk';
 					io.emit("startFlags", message);
 					const currentRound = gameState.singleIndex;
 					flagTimeout = setTimeout(function (){ timeUp("flag",currentRound) },settings.flagTimer*1000);
@@ -265,12 +291,17 @@ io.on("connection", (socket) => {
 				}
 				break;
 			case 'date':
-				const message = {
-					"timer": settings.dateTimer,
-					"playersObj": playersObject
+				if (settings.DEBUGFLAG || messageObj.secret == gameState.displaySecret) {
+					const message = {
+						"timer": settings.dateTimer,
+						"playersObj": playersObject
+					}
+					gameState.state = 'date';
+					io.emit("startDate", message);
+					const currentRound = gameState.singleIndex;
+					flagTimeout = setTimeout(function (){ timeUp("date",currentRound) },settings.dateTimer*1000);
+					io.emit("showTimer",settings.dateTimer);
 				}
-				io.emit("startDate", message);
-				io.emit("showTimer",settings.dateTimer);
 				break;
 			default:
 				console.error("doneSlide encountered an error!");
@@ -301,7 +332,13 @@ io.on("connection", (socket) => {
 
 	//on submitDate, end the game.
 	socket.on("submitDate", function (message) {
-		const winnerID = Object.keys(playersObject)[message.cards[0]];
+		checkAdvance("date",1000);
+		var winnerID;
+		if (message.cards[0] >= gameState.singleIndex) {
+			winnerID = Object.keys(playersObject)[message.cards[0]+1];
+		} else {
+			winnerID = Object.keys(playersObject)[message.cards[0]];
+		}
 		gameState.winner[winnerID] ? gameState.winner[winnerID] += 1 : gameState.winner[winnerID] = 1;
 		io.emit("gameOver", {"winner":playersObject[winnerID].displayName,"timer":settings.endTimer});
 		const currentRound = gameState.singleIndex;
@@ -309,8 +346,8 @@ io.on("connection", (socket) => {
 	});
 
 	function timeUp(state,roundNum) {
-		console.log(`state: ${state}; roundNum: ${roundNum}; currentRound: ${gameState.singleIndex}`)
-		if (roundNum != gameState.singleIndex) {return false;}
+		if (state != gameState.state || roundNum != gameState.singleIndex) {return false;}
+		if (state != 'game') {console.log(`[REDFLAGS] Round ${roundNum}'s ${state} section ran out the timer.`);}
 		switch (state) {
 			case 'perk':
 				for (let i = 0; i < Object.keys(playersObject).length; i++) {
@@ -386,6 +423,7 @@ io.on("connection", (socket) => {
 			}
 			const currentRound = gameState.singleIndex;
 			perkTimeout = setTimeout(function(){ timeUp("perk",currentRound) },settings.perkTimer*1000);
+			gameState.state = 'perk';
 			io.emit("startPerks", message);
 			io.emit("showTimer",settings.perkTimer);
 		} else {
@@ -401,6 +439,7 @@ io.on("connection", (socket) => {
 					clearTimeout(perkTimeout);
 					io.emit("blankNext");
 					io.emit("displayPerks", {"playersObject": playersObject, "singleID": gameState.singleID});
+					gameState.state = 'display';
 				}
 				break;
 			case 'flag':
@@ -408,10 +447,14 @@ io.on("connection", (socket) => {
 					clearTimeout(flagTimeout);
 					io.emit("blankNext");
 					io.emit("displayFlags", {"playersObject":playersObject, "singleID": gameState.singleID, "assignedIDs":gameState.assignedIDs});
+					gameState.state = 'display';
 				}
 				break;
+			case 'date':
+					gameState.state = 'game';
+				break;
 			default:
-				console.error(`[REDFLAGS] Weird advance state of '${state}', idk what's happening.`)
+				console.warn(`[REDFLAGS] Weird advance state of '${state}', idk what's happening.`)
 				break;
 		}
 	}

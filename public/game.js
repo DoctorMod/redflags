@@ -15,8 +15,8 @@ var playerName;
 var roomCode;
 
 //DEBUG CODE
-document.cookie = "sessionID="
-console.info("[REDFLAGS] The Debug Cookie thing is still active, please remove on release!")
+//document.cookie = "sessionID="
+//console.info("[REDFLAGS] The Debug Cookie thing is still active, please remove on release!")
 
 //setActiveDisplay
 function setActiveDisplay(activeDisplay) {
@@ -148,7 +148,8 @@ if (location.search != "") {
 
 //Get sessionID
 function getSessionID() {
-	var currentSessionCookie = getCookie("sessionID")
+	var currentSessionCookie = getCookie("sessionID");
+	//Currently don't have a session Cookie
 	if (currentSessionCookie == "") {
 		socket.emit("requestID", { "playerName": playerName, "roomCode": roomCode }, (response) => {
 			if (response.error) {
@@ -161,14 +162,27 @@ function getSessionID() {
 			reset();
 		});
 	} else {
+	//Does have a session Cookie
 		sessionID = currentSessionCookie;
-		reset();
+		socket.emit("getUsername", { "playerID": sessionID, "playerName": playerName }, (response) => {
+			if (!response.isUserReal) {
+				console.log(response);
+				//Have an old session cookie
+				setCookie("sessionID", response.sessionID, 1);
+				console.log(`old sessionID Invalid, sessionID set to ${response.sessionID}`);
+				sessionID = response.sessionID;
+			} else {
+				//Re-connecting
+				console.log("Reconnect")
+				playerName = response.playerName;
+			}
+			reset();
+		});
 	}
 }
 
 //Submit cards
 function submit() {
-	console.log(cardObj);
 	socket.emit("submit" + capitalizeFirstLetter(gameState), {"id": sessionID, "cards": cardObj[gameState], "fillInBlank": cardObj.fillInBlank[gameState] });
 	changeGameState("wait");
 }
@@ -177,7 +191,6 @@ function submit() {
 
 socket.on("startPerks", (message) => {
 	singleID = message.singleID;
-	console.log(singleID);
 	if (singleID != sessionID) {
 		changeGameState("perk");
 	} else {
@@ -209,17 +222,16 @@ socket.on("startFlags", (message) => {
 socket.on("startDate", (message) => {
 	timer = message.timer;
 	playersObj = message.playersObj;
+	delete playersObj[sessionID];
 	if (singleID != sessionID) {
 		changeGameState("lone");
 	} else {
 		for (let i = 0; i < Object.keys(playersObj).length; i++) {
-			console.log(i);
 			document.getElementById("date" + (i + 1)).style.display = 'block';
 			document.getElementById("date" + (i + 1)).innerText = message.playersObj[Object.keys(playersObj)[i]].displayName;
 		}
 		for (let i = Object.keys(playersObj).length; i < 8; i++) {
-			console.log(i);
-			document.getElementById("date" + (i + 1)).style.display = 'none';
+			document.getElementById("date" + (i + 1)).parentElement.style.display = 'none';
 		}
 		changeGameState("date");
 	}
@@ -292,3 +304,16 @@ window.onclick = function (event) {
 		document.getElementById("flagModal").style.display = "none";
 	}
 } 
+
+document.onclick = openFullscreen;
+
+function openFullscreen() {
+	if (document.documentElement.requestFullscreen) {
+	  	document.documentElement.requestFullscreen();
+	} else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
+	  	document.documentElement.webkitRequestFullscreen();
+	} else if (document.documentElement.msRequestFullscreen) { /* IE11 */
+	  	document.documentElement.msRequestFullscreen();
+	}
+	document.getElementById("fullscreenButton").style.display = 'none';
+}

@@ -15,8 +15,6 @@ button {
     cursor: pointer;
 }
 
-.title {top:0;}
-.footer {bottom: 0;}
 .title, .footer {
     position: absolute;
     margin: auto;
@@ -26,6 +24,15 @@ button {
     text-align: center;
     color: #ffffff; 
     text-transform: uppercase;
+}
+
+.title {
+    top:0;
+}
+
+.footer {
+    bottom: 0;
+    padding: 1em;
 }
 
 .container {
@@ -159,12 +166,9 @@ button {
 
 .displayGrid {
     display: grid;
-    grid-template: '1 2' '3 4';
     gap: 1em;
     width: 100%;
     height: 100%;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
 }
 
 #dateGrid {
@@ -176,13 +180,13 @@ button {
 }
 
 .card {
-    width: 90%;
+    width: 84%;
+    height: 10vh;
     padding: 7.5%;
-    height: 90%;
     border-radius: 24px;
     font-weight: bold;
     text-align: left;
-    font-size: 1.1em;
+    font-size: 1.5em;
     transition: 0.3s;
     cursor: pointer;
 }
@@ -264,6 +268,9 @@ button:has(> .card) {
 }
 
 .playersGrid {
+    display: grid;
+    grid-template: '1 2' '3 4';
+    grid-template-rows: repeat(2, 1fr);
     grid-template-columns: repeat(4, 1fr);
     position: relative;
     bottom: 0;
@@ -512,6 +519,12 @@ button:has(> .card) {
 /* DESKTOP */
 
 @media only screen and (min-width: 768px) {
+    .displayGrid:not(.playersGrid) {
+        grid-template: '1 2' '3 4';
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+    }
+    
     .context {
         width: 40%;
     }
@@ -535,6 +548,8 @@ button:has(> .card) {
     .card {
         padding: 0.5em;
         font-size: 1.8em;
+        height: 80%;
+        width: 90%;
     }
 
     .modal .footerButton {

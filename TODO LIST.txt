@@ -5,12 +5,12 @@ Add 6 Different 'displays'
 [X] - player.perks (Submit)
 [X] - all.blank 
 [X] - player.flags (Submit)
-[ ] - single.date (Submit)
+[X] - single.date (Submit)
 [X] - all.end
 
 lobby code: `Math.random().toString(36).substring(2,6).toUpperCase()`
 
-[ ] - set singleSessionID
+[X] - set singleSessionID
 
 Messages:
 
@@ -21,10 +21,10 @@ Messages:
 [X/X] - [display blank] <-------------- blank, args[]
 [X/X] - [display flags] <-------------- startFlags, args[CHECK JSON IN GAME.JS]
 [X/X] - SubmitFlags, args[id,cards] --> [assign playerObj.selectedFlagCards]
-[ /X] - [display date] <--------------- startDate, args[CHECK JSON IN GAME.JS]
+[X/X] - [display date] <--------------- startDate, args[CHECK JSON IN GAME.JS]
 [X/X] - SubmitDate, args[winnerid] ---> [assign Winner]
-[X/ ] - [display end] <---------------- gameOver, args[winner]
-[ / ] - nextSlide, args[] ------------> [display nextSlide]
+[X/X] - [display end] <---------------- gameOver, args[winner]
+[X/X] - nextSlide, args[] ------------> [display nextSlide]
 
 # EVENTUALLY DO THIS STUFF
         ClientDisplay                   Server
@@ -35,10 +35,13 @@ Messages:
 [X/X] - [display timer] <-------------- showTimer, args[timer]
 [ / ] - [run animation] <-------------- playerSubmitted, args[playerName]
 [X/X] - [display perks] <-------------- displayPerks, args[foreach playerObj -> playerObj.perks]
-[X/ ] - [display nextSlide] <---------- nextSlide, args[]
+[X/X] - [display nextSlide] <---------- nextSlide, args[]
 [X/X] - doneSlides, args[state] ------> [emit start{state}]
 [X/X] - [display flags] <-------------- displayFlags, args[foreach playerObj -> playerObj.perks, foreach playerObj -> playerObj.flags]
-[ / ] - [display end] <---------------- gameOver, args[winner]
+[X/X] - [display end] <---------------- gameOver, args[winner]
+
+[ / ] - [run animation] <-------------- playerSubmitted, args[playerName]
+[X]   - fix issue with displaying the submit Dates
 
 startDate Expected input object: 
 {

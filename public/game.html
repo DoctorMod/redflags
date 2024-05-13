@@ -18,6 +18,8 @@
                     <div id="lobbyGrid" class="gameDisplay active">
                         <h1><span id="username">[Name]</span></h1>
                         <h3>You're in! Is your name on the screen?</h3>
+                        <br/><br/><br/>
+                        <button id="fullscreenButton" class="menuButton" onclick="openFullscreen();">Fullscreen</button>
                     </div>
                     <div id="perkGrid" class="displayGrid showSubmit gameDisplay">
                         <button onclick="cardClicked(event,perkRemaining)"><div class="card perkCard" id="perk1">Is allergic to all of your favorite foods</div></button>
@@ -60,9 +62,6 @@
         <div id="flagModal" class="modal">
             <div class="modal-content">
                 <h3><span id="assignedName">[Name]</span>'s Perk Cards are:</h3>
-                <br/>
-                <br/>
-                <br/>
                 <div class="cardGrid">
                     <div class="displayGrid">
                         <button><div id="assignedCard1" class="card perkCard">Has an 8-pack</div></button>
