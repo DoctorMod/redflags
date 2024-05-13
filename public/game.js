@@ -177,6 +177,7 @@ function submit() {
 
 socket.on("startPerks", (message) => {
 	singleID = message.singleID;
+	console.log(singleID);
 	if (singleID != sessionID) {
 		changeGameState("perk");
 	} else {
@@ -189,6 +190,7 @@ socket.on("startPerks", (message) => {
 });
 
 socket.on("startFlags", (message) => {
+	document.getElementById("gameSubmit").disabled = true;
 	if (singleID != sessionID) {
 		timer = message.timer;
 		assignedID = message.assignedID[sessionID];
@@ -230,8 +232,18 @@ socket.on("blankNext", (message) => {
 
 //onWinner
 socket.on("gameOver", (message) => {
-	document.getElementById("winnerUser").innerText = message;
+	document.getElementById("winnerUser").innerText = message.winner;
 	changeGameState("winr");
+});
+
+socket.on("restart", (message) => {
+	reset();
+	allCards = document.getElementsByClassName("card");
+	for (let i = 0; i < allCards.length; i++) {
+		const element = allCards[i];
+		element.classList.remove("selected");
+	}
+	document.getElementById("gameSubmit").disabled = true;
 });
 
 //Initialise
@@ -241,6 +253,11 @@ function reset() {
 	dateRemaining = { "val": 1 };
 
 	changeGameState("lobby");
+
+	timer = 0;
+	singleID = '';
+	assignedID = '';
+
 	cardObj = { 
 		id: sessionID, 
 		perk: [], 
@@ -257,6 +274,17 @@ function reset() {
 (function () {
 	getSessionID();
 })();
+
+//Exit Game
+socket.on("exit", (message) => {
+	document.getElementById("endGrid").children[0].innerText = "Game Over!";
+	window.location.reload();
+});
+
+//Relaod Game
+socket.on("playAgain", (message) => {
+	window.location.reload();
+});
 
 //Close on modal unfocus
 window.onclick = function (event) {

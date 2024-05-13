@@ -6,7 +6,6 @@ const http = require("http");
 const fs = require("fs");
 const QRCode = require('qrcode');
 const ip = require("ip");
-const { callbackify } = require("util");
 
 const app = express();
 const PORT = 3008 || process.env.PORT;
@@ -19,10 +18,11 @@ var settings = {
 	"perkTimer": 30,
 	"flagTimer": 30,
 	"dateTimer": 60,
-	"endTimer": 20
+	"endTimer": 2
 }
 
-var timeout;
+var perkTimeout;
+var flagTimeout;
 
 // Set static folder
 app.use(express.static("public"));
@@ -55,12 +55,24 @@ function createEmptyPlayer() {
 }
 
 function resetGameState() {
-	return {
-		assignedIDs: {},
-		perksDone: 0,
-		flagsDone: 0,
-		singleID: ''
-	}
+	gameState.assignedIDs = {};
+	gameState.perksDone = 0;
+	gameState.flagsDone = 0;
+	gameState.singleID = '';
+}
+
+function resetGameStateToBegining() {
+	gameState.assignedIDs = {};
+	playersObject = {};
+	gameState.points = {};
+	gameState.winner = {};
+	gameState.perksDone = 0;
+	gameState.flagsDone = 0;
+	gameState.singleIndex = 0;
+	gameState.playersMax = -1;
+	gameState.singleID = '';
+	perkTimeout = undefined;
+	flagTimeout = undefined;
 }
 
 //Gamestate
@@ -68,10 +80,12 @@ var gameState = {
 	displaySecret: '',
 	roomCode: '',
 	assignedIDs: {},
+	points: {},
+	winner: {},
 	perksDone: 0,
 	flagsDone: 0,
-	playersMax: -1,
 	singleIndex: 0,
+	playersMax: -1,
 	singleID: ''
 }
 
@@ -82,7 +96,8 @@ fs.readFile('listofPerks.txt', 'utf8', (err, data) => {
 		console.error(err);
 		return;
 	}
-	perksArray = data.split("\n");
+	const commentless = data.replace(/\/\/[\w ]+(\r\n)/gm,"");
+	perksArray = commentless.split("\n");
 });
 
 //Read Flags File to Array
@@ -92,7 +107,8 @@ fs.readFile('listofFlags.txt', 'utf8', (err, data) => {
 		console.error(err);
 		return;
 	}
-	flagsArray = data.split("\n");
+	const commentless = data.replace(/\/\/[\w ]+(\r\n)/gm,"");
+	flagsArray = commentless.split("\n");
 });
 
 //Start Server
@@ -186,24 +202,37 @@ io.on("connection", (socket) => {
 	//Game Start (sent from ClientDisplay)
 	socket.on("startGame", function (secretCode) {
 		if (settings.DEBUGFLAG || secretCode == gameState.displaySecret) {
-			var possiblePerkCards = {};
+			const possiblePerkCards = assignDecks();
 			gameState.singleID = Object.keys(playersObject)[gameState.singleIndex];
-			assignDecks();
 			const message = {
 				"timer": settings.perkTimer,
 				"singleID": gameState.singleID,
 				"perkCards": possiblePerkCards
 			}
-			timeout = setTimeout(function(){ timeUp("perk") },settings.perkTimer*1000);
+			const currentRound = gameState.singleIndex;
+			perkTimeout = setTimeout(function(){ timeUp("perk",currentRound) },settings.perkTimer*1000);
 			io.emit("startPerks", message);
 			io.emit("showTimer",settings.perkTimer);
 		}
 	});
 
+	//Repeater for nextSlide command
 	socket.on("nextSlide", function() {
 		io.emit("nextSlide");
 	})
 
+	//Play Again
+	socket.on("playAgain", function () {
+		io.emit("playAgain");
+		resetGameStateToBegining();
+	});
+
+	//Close the server
+	socket.on("exit", function () {
+		io.emit("exit");
+		process.exit();
+	});
+	
 	//on doneSlides from ClientDisplay, send out the corresponding GameState
 	socket.on("doneSlides", function (messageObj) {
 		switch (messageObj.state) {
@@ -230,9 +259,8 @@ io.on("connection", (socket) => {
 						"playersObj": playersObject
 					}
 					io.emit("startFlags", message);
-					timeout = setTimeout(function () {
-						timeUp("flag");
-					},settings.flagTimer*1000);
+					const currentRound = gameState.singleIndex;
+					flagTimeout = setTimeout(function (){ timeUp("flag",currentRound) },settings.flagTimer*1000);
 					io.emit("showTimer",settings.flagTimer);
 				}
 				break;
@@ -245,7 +273,7 @@ io.on("connection", (socket) => {
 				io.emit("showTimer",settings.dateTimer);
 				break;
 			default:
-				console.error("doneSlide ain't sliding!");
+				console.error("doneSlide encountered an error!");
 				break;
 		}
 	});
@@ -274,11 +302,15 @@ io.on("connection", (socket) => {
 	//on submitDate, end the game.
 	socket.on("submitDate", function (message) {
 		const winnerID = Object.keys(playersObject)[message.cards[0]];
+		gameState.winner[winnerID] ? gameState.winner[winnerID] += 1 : gameState.winner[winnerID] = 1;
 		io.emit("gameOver", {"winner":playersObject[winnerID].displayName,"timer":settings.endTimer});
-		timeout = setTimeout(function(){ timeUp("game") },settings.endTimer*1000);
+		const currentRound = gameState.singleIndex;
+		setTimeout(function(){ timeUp("game",currentRound) },settings.endTimer*1000);
 	});
 
-	function timeUp(state) {
+	function timeUp(state,roundNum) {
+		console.log(`state: ${state}; roundNum: ${roundNum}; currentRound: ${gameState.singleIndex}`)
+		if (roundNum != gameState.singleIndex) {return false;}
 		switch (state) {
 			case 'perk':
 				for (let i = 0; i < Object.keys(playersObject).length; i++) {
@@ -307,7 +339,12 @@ io.on("connection", (socket) => {
 				checkAdvance('date',10000);
 				break;
 			case 'game':
-				gameRestart();
+				if (gameState.singleIndex < gameState.playersMax) {
+					gameRestart();
+				} else {
+					io.emit("gameOverFinal",playersObject[Object.keys(gameState.winner).reduce((a, b) => gameState.winner[a] > gameState.winner[b] ? a : b)].displayName);
+					gameState.singleIndex += 1;
+				}
 				break;
 			default:
 				console.error(`[REDFLAGS] Weird advance state of '${state}', idk what's happening.`)
@@ -316,6 +353,7 @@ io.on("connection", (socket) => {
 	}
 
 	function assignDecks() {
+		var possiblePerkCards = {};
 		for (let i = 0; i < Object.keys(playersObject).length; i++) {
 			const playerID = Object.keys(playersObject)[i];
 			if (playerID != gameState.singleID) {
@@ -323,29 +361,51 @@ io.on("connection", (socket) => {
 				possiblePerkCards[playerID] = playersObject[playerID].possiblePerkCards;	
 			}
 		}
+		return possiblePerkCards;
 	}
 
 	function gameRestart() {
-		gameState = resetGameState();
+		resetGameState();
+		gameState.singleIndex += 1;
+		if (gameState.singleID != Object.keys(playersObject).length-1) {
+
 		for (let i = 0; i < Object.keys(playersObject).length; i++) {
 			const playerID = Object.keys(playersObject)[i];
-			playersObject[playerID] = createEmptyPlayer();
+			playersObject[playerID].possiblePerkCards = [];
+			playersObject[playerID].possibleFlagCards = [];
+			playersObject[playerID].selectedPerkCards = [];
+			playersObject[playerID].selectedFlagCards = [];	
 		}
-		io.emit("restart")
+		io.emit("restart");
+		gameState.singleID = Object.keys(playersObject)[gameState.singleIndex];
+			const possiblePerkCards = assignDecks();
+			const message = {
+				"timer": settings.perkTimer,
+				"singleID": gameState.singleID,
+				"perkCards": possiblePerkCards
+			}
+			const currentRound = gameState.singleIndex;
+			perkTimeout = setTimeout(function(){ timeUp("perk",currentRound) },settings.perkTimer*1000);
+			io.emit("startPerks", message);
+			io.emit("showTimer",settings.perkTimer);
+		} else {
+			const message = {"winner": gameState.winner};
+			io.emit("finalEndScreen", message);
+		}
 	}
 
 	function checkAdvance(state, valueCheck) {
 		switch (state) {
 			case 'perk':
 				if (valueCheck >= gameState.playersMax) {
-					clearTimeout(timeout);
+					clearTimeout(perkTimeout);
 					io.emit("blankNext");
 					io.emit("displayPerks", {"playersObject": playersObject, "singleID": gameState.singleID});
 				}
 				break;
 			case 'flag':
 				if (valueCheck >= gameState.playersMax) {
-					clearTimeout(timeout);
+					clearTimeout(flagTimeout);
 					io.emit("blankNext");
 					io.emit("displayFlags", {"playersObject":playersObject, "singleID": gameState.singleID, "assignedIDs":gameState.assignedIDs});
 				}

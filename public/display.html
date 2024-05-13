@@ -38,7 +38,7 @@
                     <div class="disabled card centred">_____</div>
                     <div class="disabled card centred">_____</div>
                 </div>
-                <button class="startGame displayButton" id="startGame" onclick="socket.emit('startGame',secret); "
+                <button class="startGame displayButton" id="startGame" onclick="socket.emit('startGame',secret);clearTimeout(lobbyTTS);"
                     disabled>Submit</button>
             </div>
             <div class="perks display">
@@ -68,6 +68,14 @@
             </div>
             <div class="end display">
                 <h2><span id="winnerName">[Name]</span> won!</h2>
+                <br/><br/><br/>
+            </div>
+            <div class="endFinal display">
+                <h2><span id="gameWinner">[Name]</span> won!</h2>
+                <h3>Do you want to </h3>
+                <h2><button class="menuButton" onclick="socket.emit('playAgain',secret);">Play again?</button></h2> 
+                <h3>or</h3>
+                <h2><button class="menuButton" onclick="socket.emit('exit',secret);window.close();">Exit?</button></h2>
                 <br/><br/><br/>
             </div>
             <div class="timer display">

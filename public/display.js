@@ -11,9 +11,10 @@ var perkCounter = 0;
 var flagCounter = 0;
 var gameState = '';
 
-var oneLiners = {
+//TTS Lines
+const oneLiners = {
 	"playerJoin": [
-		"Well, well, well, look who just strolled into the party like they own the place! Welcome, party animal!",
+		"Well, well, well, look who just strolled into the party like they own the place! Welcome, [NAME]!",
 		"Guess who just crash-landed in the fun zone? It's [NAME], bringing good vibes and questionable dance moves!",
 		"Hold the phone - we've got a new contender in the laughter ring! Everyone, meet the life of the party, [NAME]!",
 		"Alert the paparazzi! A star just entered the lobby. Welcome, [NAME], our newest VIP in the party game extravaganza!",
@@ -114,6 +115,7 @@ function updateFlag(playerFlag) {
 	}
 }
 
+//Go to Next Slide
 function nextSlide() {
 	switch (gameState) {
 		case 'perks':
@@ -140,6 +142,7 @@ socket.emit("requestDisplay", secret, (response) => {
 	document.getElementById("ip").innerText = response.ip;
 	document.getElementById("roomCode").innerText = response.roomCode;
 	console.log(response);
+	lobbyTTS = setTimeout(function(){ tts(ttsOneLiner("lobbyLines")) },23*1000);
 });
 
 //on player join, add name to list
@@ -149,8 +152,10 @@ socket.on("playerJoin", (playerName) => {
 	if (playerCounter >= 3) {
 		document.getElementById("startGame").disabled = false;
 	}
+	tts(ttsOneLiner("playerJoin").replace("[NAME]",playerName))
 })
 
+//Countdown the Timer
 setInterval(function() {
 	timeRemainingSeconds--;
 	document.getElementById("seconds").innerText = timeRemainingSeconds;
@@ -213,8 +218,39 @@ socket.on("gameOver", (message) => {
 	document.getElementById("seconds").innerText = timeRemainingSeconds;
 });
 
+//Show Final Winner
+socket.on("gameOverFinal", (WinnerName) => {
+	changeDisplay("endFinal");
+	console.log(WinnerName);
+	document.getElementById("gameWinner").innerText = WinnerName;
+	timeRemainingSeconds = WinnerName.timer;
+	document.getElementById("seconds").innerText = timeRemainingSeconds;
+});
+
+//Restart round
+socket.on("restart", (message) => {
+	socket.emit("startGame",secret);
+	perksList = {};
+	flagList = {};
+	perkCounter = 0;
+	flagCounter = 0;
+});
+
+//Reload Game
+socket.on("playAgain", (message) => {
+	window.location.reload();
+})
+
+//Reload Game
+socket.on("exit", (message) => {
+	window.location.reload();
+})
+
 //Goto Next Slide
 socket.on("nextSlide", nextSlide);
+
+//TTS oneliners
+function ttsOneLiner(option) {return (oneLiners[option][Math.floor(Math.random()*oneLiners[option].length)])}
 
 //TTS Function
 function tts(text) { if (document.getElementById("ttsSettings").value == "true") {window.speechSynthesis.speak(new SpeechSynthesisUtterance(text)) }}
