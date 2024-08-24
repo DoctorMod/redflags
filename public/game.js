@@ -136,7 +136,7 @@ function getCookie(cname) {
 	return "";
 }
 if (location.search != "") {
-	playerName = location.search.split("&")[0].substring(12);
+	playerName = decodeURIComponent(location.search.split("&")[0].substring(12).replace("+",""));
 	roomCode = location.search.split("&")[1].substring(9);
 } else {
 	location.pathname = '';
@@ -290,7 +290,8 @@ function reset() {
 //Exit Game
 socket.on("exit", (message) => {
 	document.getElementById("endGrid").children[0].innerText = "Game Over!";
-	window.location.reload();
+	exitFullscreen();
+	history.go(-2);
 });
 
 //Relaod Game
@@ -305,15 +306,30 @@ window.onclick = function (event) {
 	}
 } 
 
-document.onclick = openFullscreen;
+//document.onclick = openFullscreen;
+
+document.addEventListener('fullscreenchange', (event) => {
+	// The document with the fullscreen element
+	var fullscreenElement = document.fullscreenElement;
+  
+	// If there is no element in fullscreen mode, show the button
+	if (!fullscreenElement) {
+	  document.getElementById("fullscreenButton").style.display = 'block';
+	}
+  });
+
+//https://www.w3schools.com/Jsref/api_fullscreen.asp
 
 function openFullscreen() {
+	window.scrollTo(0,0);
 	if (document.documentElement.requestFullscreen) {
 	  	document.documentElement.requestFullscreen();
 	} else if (document.documentElement.webkitRequestFullscreen) { /* Safari */
 	  	document.documentElement.webkitRequestFullscreen();
 	} else if (document.documentElement.msRequestFullscreen) { /* IE11 */
 	  	document.documentElement.msRequestFullscreen();
+	} else if (document.documentElement.mozRequestFullScreen) { /* Firefox */
+	  	document.documentElement.mozRequestFullScreen();
 	}
 	document.getElementById("fullscreenButton").style.display = 'none';
 }

@@ -15,13 +15,20 @@ function changeMenuButtons(newMenu) {
 }
 
 function validateForm() {
-	var playerName = document.forms["joinForm"]["playerName"].value;
-	var roomCode = document.forms["joinForm"]["roomCode"].value;
+	var playerName = sanitizeInput(document.forms["joinForm"]["playerName"].value);
+	var roomCode = sanitizeInput(document.forms["joinForm"]["roomCode"].value);
 	document.forms["joinForm"]["roomCode"].value = roomCode.toUpperCase();
+	document.forms["joinForm"]["playerName"].value = playerName.toUpperCase();
 	if (playerName == "" || roomCode == "") {
 		alert("All boxes need to be filled in!");
 		return false;
 	}
 }
 
-document.getElementById("roomCode").value = '';
+function sanitizeInput(input) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(input));
+    return div.innerHTML;
+}
+
+document.getElementById("roomCode").value = location.search.substring(4);

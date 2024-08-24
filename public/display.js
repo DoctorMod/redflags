@@ -139,7 +139,7 @@ function nextSlide() {
 
 //Start up request id and room code
 socket.emit("requestDisplay", secret, (response) => {
-	if (!response.instantLoad) {
+	if (response.instantLoad > -1) {
 		document.getElementById("ip").innerText = response.ip;
 		document.getElementById("roomCode").innerText = response.roomCode;
 		lobbyTTS = setTimeout(function(){ tts(ttsOneLiner("lobbyLines")) },23*1000);
@@ -150,9 +150,19 @@ socket.emit("requestDisplay", secret, (response) => {
 			}
 		}
 	} else {
-		setTimeout(function(){socket.emit('startGame',secret)},500);
+		setTimeout(function(){loopInterval(numCount)},500);
 	}
 });
+
+function loopInterval(numCount) {
+	console.log(playerCounter);
+	console.log(numCount)
+	if (playerCounter >= numCount) {
+		socket.emit('startGame',secret);
+	} else {
+		setTimeout(function(){loopInterval(numCount)},1000);
+	}
+}
 
 function playerJoin(playerName) {
 	document.getElementsByClassName("card")[playerCounter].innerText = playerName;

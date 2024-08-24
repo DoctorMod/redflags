@@ -12,12 +12,12 @@ const PORT = 3008 || process.env.PORT;
 const server = http.createServer(app);
 
 var settings = {
-	"DEBUGFLAG": false,
+	"DEBUGFLAG": true,
 	"tts": false,
 	"reuseCards": false,
-	"perkTimer": 30,
-	"flagTimer": 30,
-	"dateTimer": 60,
+	"perkTimer": 90,
+	"flagTimer": 90,
+	"dateTimer": 120,
 	"endTimer": 2
 }
 
@@ -31,7 +31,7 @@ app.use(express.static("public"));
 //Adapted from: https://gabrieleromanato.name/nodejs-create-a-qr-code-in-expressjs
 app.get('/qrcode.png', async (req, res) => {
 	try {
-		const qrCodeText = "http://" + ip.address() + ":" + PORT;
+		const qrCodeText = "http://" + ip.address() + ":" + PORT + "?id=" + gameState.roomCode;
 		const url = await QRCode.toBuffer(qrCodeText, { margin: 1, color: { dark: "#01059900", light: "#FFFFFFFF" } });
 		res.send(url);
 	} catch (err) {
@@ -79,8 +79,8 @@ function resetGameStateToBegining() {
 
 //Gamestate
 var gameState = {
+	roomCode: Math.random().toString(36).substring(2, 6).toUpperCase(),
 	displaySecret: '',
-	roomCode: '',
 	state: 'lobby',
 	assignedIDs: {},
 	points: {},
@@ -89,7 +89,7 @@ var gameState = {
 	flagsDone: 0,
 	singleIndex: 0,
 	playersMax: -1,
-	replay: false,
+	replay: 0,
 	singleID: ''
 }
 
@@ -116,7 +116,7 @@ fs.readFile('listofFlags.txt', 'utf8', (err, data) => {
 });
 
 //Start Server
-server.listen(PORT, () => console.log(`[REDFLAGS] running on port ${PORT}`));
+server.listen(PORT, () => console.log(`[REDFLAGS] running on port ${PORT}, at the address: http://localhost:${PORT}/display.html`));
 
 //Generate Deck Function
 function generateDeck(arr, len) {
@@ -212,7 +212,6 @@ io.on("connection", (socket) => {
 	//on requestDisplay from ClientDisplay, return roomCode
 	socket.on("requestDisplay", (displaySecret, callback) => {
 		gameState.displaySecret = displaySecret;
-		gameState.roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
 		callback({ 'roomCode': gameState.roomCode, 'ip': ip.address() + ":" + PORT, 'instantLoad': gameState.replay, 'currentPlayerObj': playersObject});
 	});
 
@@ -248,7 +247,7 @@ io.on("connection", (socket) => {
 	//Play Again
 	socket.on("playAgain", function () {
 		io.emit("playAgain");
-		gameState.replay = true;
+		gameState.replay = gameState.playersMax+1;
 		resetGameStateToBegining();
 	});
 
