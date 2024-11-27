@@ -1,5 +1,8 @@
 # Red Flags
 
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+
 Redflags is a game that emulates the style of popular party games like Kahoot and Jackbox, but it is based on the game Redflags. It is a web-based game where players can engage in a fun and interactive experience using their own lists of flags and perk cards. The project utilizes JavaScript, HTML, and CSS to create a dynamic and engaging user interface.
 ## Installation
 
